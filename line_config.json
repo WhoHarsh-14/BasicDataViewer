@@ -1,0 +1,82 @@
+[
+  {
+    "line_id": "line1",
+    "line_name": "Assembly Line 1",
+    "registers": {
+      "target": "D300",
+      "actual": "D102",
+      "accuracy": "D302",
+      "time_to_complete": "D303"
+    },
+    "machines": [
+      {
+        "machine_id": "m1",
+        "machine_name": "Robotic Welder",
+        "registers": {
+          "target": "D310",
+          "actual": "D100",
+          "accuracy": "D312",
+          "time_to_complete": "D313",
+          "breakdown_time": "D314",
+          "idle_time": "D315",
+          "runtime": "D316",
+          "product_type": "D317"
+        }
+      },
+      {
+        "machine_id": "m2",
+        "machine_name": "CNC Mill",
+        "registers": {
+          "target": "D320",
+          "actual": "D321",
+          "accuracy": "D322",
+          "time_to_complete": "D323",
+          "breakdown_time": "D324",
+          "idle_time": "D325",
+          "runtime": "D326",
+          "product_type": "D327"
+        }
+      }
+    ]
+  },
+  {
+    "line_id": "line2",
+    "line_name": "Packaging Line 2",
+    "registers": {
+      "target": "D400",
+      "actual": "D401",
+      "accuracy": "D402",
+      "time_to_complete": "D403"
+    },
+    "machines": [
+      {
+        "machine_id": "m3",
+        "machine_name": "Labeler",
+        "registers": {
+          "target": "D410",
+          "actual": "D411",
+          "accuracy": "D412",
+          "time_to_complete": "D413",
+          "breakdown_time": "D414",
+          "idle_time": "D415",
+          "runtime": "D416",
+          "product_type": "D417"
+        }
+      },
+      {
+        "machine_id": "m4",
+        "machine_name": "Sealer",
+        "registers": {
+          "target": "D420",
+          "actual": "D421",
+          "accuracy": "D422",
+          "time_to_complete": "D423",
+          "breakdown_time": "D424",
+          "idle_time": "D425",
+          "runtime": "D426",
+          "product_type": "D427"
+        }
+      }
+    ]
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "name": "plc-tag-monitor",
+  "version": "1.0.0",
+  "description": "Mitsubishi PLC Tag Monitor — Desktop Data Collector",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "build": {
+    "appId": "com.tagmonitor.plc",
+    "productName": "PLC Tag Monitor",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico"
+    },
+    "extraResources": [
+      {
+        "from": "../",
+        "to": "backend",
+        "filter": [
+          "app.py",
+          "plc_poller.py",
+          "database.py",
+          "config.py",
+          "schemas.py",
+          "run_web.py",
+          "requirements.txt",
+          "static/**"
+        ]
+      }
+    ]
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0"
+  }
+}

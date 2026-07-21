@@ -1,0 +1,5 @@
+{
+  "poll_interval_seconds": 0.5,
+  "shift_duration_hours": 8,
+  "shift_start_hour": 6
+}
