@@ -60,7 +60,7 @@
       // Update cells
       if (elStart) elStart.textContent = fmt(data.shift_start);
       if (elEnd)   elEnd.textContent   = fmt(data.shift_end);
-      if (elRows)  elRows.textContent  = fmtRows(data.rows_buffered);
+      if (elRows)  elRows.textContent  = 'At Shift End';
       if (elRemaining) elRemaining.textContent = fmtSeconds(data.seconds_remaining);
 
       // Progress bar

@@ -514,16 +514,8 @@ class PLCPoller:
                 parsed_registers = self._parse_registers(raw_values)
                 now = datetime.now(timezone.utc)
 
-                # ── Hand off to ShiftManager (replaces direct DB write) ──
-                await shift_manager.add_reading(
-                    timestamp=now,
-                    plc_ip=self.plc_ip,
-                    plc_port=self.plc_port,
-                    status="OK",
-                    x_inputs=[bool(v) for v in x_data],
-                    y_outputs=[bool(v) for v in y_data],
-                    d_registers=parsed_registers,
-                )
+                # ── Check shift boundary ──
+                await shift_manager.check_shift_boundary(now)
 
                 # ── WebSocket broadcast (live, unchanged) ──
                 await self._broadcast(now, x_data, y_data, parsed_registers, "OK")

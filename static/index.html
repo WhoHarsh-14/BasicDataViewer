@@ -15,15 +15,9 @@
 <body>
     <!-- ─── SIDEBAR ─── -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-            </div>
-            <span class="brand-text">TAG MONITOR</span>
+        <div class="sidebar-brand" style="display: flex; align-items: center; gap: 10px;">
+            <img src="/static/img/tag_logo.png" alt="TAG Logo" style="height: 38px; width: auto; object-fit: contain;">
+            <span class="brand-text" style="font-size: 15px; font-weight: 800; color: var(--text-primary); letter-spacing: 0.5px;">TAG AUTOMATION</span>
         </div>
 
         <nav class="sidebar-nav">
@@ -191,10 +185,10 @@
                         <div style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;">Shift End</div>
                         <div id="shift-end-time" style="font-size:15px; font-weight:600; color:var(--text-primary); font-family:'JetBrains Mono',monospace;">—</div>
                     </div>
-                    <!-- Rows Buffered -->
+                    <!-- Shift Mode -->
                     <div style="background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:14px;">
-                        <div style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;">Rows Buffered</div>
-                        <div id="shift-rows-buffered" style="font-size:24px; font-weight:700; color:#50c878; font-family:'JetBrains Mono',monospace;">—</div>
+                        <div style="font-size:11px; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:6px;">PostgreSQL Push Mode</div>
+                        <div id="shift-rows-buffered" style="font-size:15px; font-weight:700; color:#50c878; font-family:'JetBrains Mono',monospace;">At Shift End</div>
                     </div>
                     <!-- Time Remaining -->
                     <div style="background: rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:10px; padding:14px;">
@@ -270,15 +264,16 @@
 
         <!-- ══════════ DATAVIEWER & INDUSTRIAL REPORTS PAGE ══════════ -->
         <section class="page" id="page-history">
-            <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
-                <div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <h1 style="margin: 0;">DataViewer & Industrial Reports</h1>
-                        <span id="web-mode-badge" style="font-size: 11px; padding: 3px 10px; border-radius: 20px; background: rgba(0, 212, 255, 0.12); color: var(--cyan); border: 1px solid rgba(0, 212, 255, 0.3); font-weight: 600;">PostgreSQL DB Reports</span>
+            <!-- TAG AUTOMATION Website Header Bar -->
+            <header class="page-header web-header-bar" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%); border-bottom: 1px solid rgba(0, 212, 255, 0.25); padding: 18px 24px; margin-bottom: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <img src="/static/img/tag_logo.png" alt="TAG Automation Logo" style="height: 52px; width: auto; object-fit: contain; filter: drop-shadow(0 0 10px rgba(228, 99, 19, 0.3));">
+                    <div>
+                        <h1 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 1.5px; background: linear-gradient(135deg, #ffffff 0%, #ff8c00 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">TAG AUTOMATION</h1>
+                        <span style="font-size: 11px; color: var(--text-secondary); letter-spacing: 0.5px; text-transform: uppercase; font-weight: 500;">Industrial Analytics & Shift Report Portal</span>
                     </div>
-                    <p class="page-subtitle">Date-wise shift performance analytics, pie chart visualizations, and downloadable database reports</p>
                 </div>
-                <div class="no-print" style="display: flex; gap: 10px;">
+                <div class="no-print" style="display: flex; gap: 10px; align-items: center;">
                     <button class="btn btn-ghost" id="btn-clear-db-history" style="border: 1px solid rgba(239,68,68,0.4); background: rgba(239,68,68,0.1); color: var(--red); display: flex; align-items: center; gap: 6px; font-size: 12px;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                             <polyline points="3 6 5 6 21 6"></polyline>

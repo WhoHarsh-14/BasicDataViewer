@@ -52,9 +52,12 @@ window.APP_MODE = (window.electronAPI && window.electronAPI.isElectron) || urlPa
 // PAGE ROUTING
 // ══════════════════════════════════════
 function navigateTo(pageName) {
-    // In web mode, only reports/history is allowed
     if (window.APP_MODE === 'web') {
-        pageName = 'history';
+        pageName = 'history'; // Python Web Mode: Reports ONLY
+    } else {
+        if (pageName === 'history') {
+            pageName = 'lines'; // Electron Desktop Mode: Live Monitoring ONLY (No Reports tab)
+        }
     }
 
     // Hide all pages
@@ -353,18 +356,22 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.classList.add('mode-web');
         // Web mode: strictly DB Reports only. Hide data communication elements.
         const brandText = document.querySelector('.brand-text');
-        if (brandText) brandText.textContent = 'TAG REPORTS';
+        if (brandText) brandText.textContent = 'TAG AUTOMATION';
         
         // Force navigate to history page
         navigateTo('history');
     } else {
         document.body.classList.add('mode-desktop');
-        // Desktop mode: full data communication system
+        // Desktop mode: remove DataViewer & Reports from sidebar completely
+        const navHistory = document.getElementById('nav-history');
+        if (navHistory) navHistory.remove();
+
         fetchRegistersConfig().then(() => {
             initDashboard();
         });
         connectWebSocket();
         fetchStatus();
+        navigateTo('lines');
     }
 
     // Event Bindings
@@ -505,7 +512,7 @@ function renderLinesGrid() {
     const grid = document.createElement('div');
     grid.className = 'lines-grid';
     grid.style.display = 'grid';
-    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(260px, 1fr))';
+    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(360px, 1fr))';
     grid.style.gap = '20px';
 
     config.forEach(line => {
@@ -518,7 +525,7 @@ function renderLinesGrid() {
         card.style.display = 'flex';
         card.style.flexDirection = 'column';
         card.style.gap = '12px';
-        card.style.background = 'linear-gradient(135deg, rgba(20,27,40,0.8) 0%, rgba(10,15,25,0.9) 100%)';
+        card.style.background = 'linear-gradient(135deg, rgba(20,27,40,0.85) 0%, rgba(10,15,25,0.95) 100%)';
         card.style.border = '1px solid var(--border)';
         card.style.borderRadius = 'var(--radius)';
 
@@ -538,24 +545,38 @@ function renderLinesGrid() {
         });
 
         card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="margin: 0; font-size: 15px; color: var(--cyan); font-weight: 700;">${line.line_name}</h3>
-                <span class="badge badge-purple" style="font-size: 9px; padding: 2px 6px;">LINE BLOCK</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 16px; color: var(--cyan); font-weight: 700;">${line.line_name}</h3>
+                <span class="badge badge-purple" style="font-size: 9px; padding: 2px 6px;">LIVE REGISTERS</span>
             </div>
-            <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px;">
-                Target vs Actual Progress:
-            </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                <div style="font-size: 20px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
-                    <span id="line-grid-actual-${line.line_id}">—</span> / <span id="line-grid-target-${line.line_id}">—</span>
+
+            <div style="display: grid; grid-template-columns: 1.1fr 1fr; gap: 15px; align-items: center; margin-top: 5px;">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Target vs Actual:
+                    </div>
+                    <div style="font-size: 22px; font-weight: 800; font-family: 'JetBrains Mono', monospace; color: #50c878;">
+                        <span id="line-grid-actual-${line.line_id}">—</span> / <span id="line-grid-target-${line.line_id}">—</span>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                        <span>Accuracy:</span>
+                        <strong id="line-grid-accuracy-${line.line_id}" style="color: var(--cyan); font-family: 'JetBrains Mono', monospace;">—</strong>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-secondary); display: flex; justify-content: space-between;">
+                        <span>Time Left:</span>
+                        <strong id="line-grid-time-${line.line_id}" style="color: var(--amber); font-family: 'JetBrains Mono', monospace;">—</strong>
+                    </div>
                 </div>
-                <div style="width: 80px; height: 80px; position: relative;">
-                    <canvas id="line-grid-chart-${line.line_id}"></canvas>
+
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="width: 160px; height: 160px; position: relative;">
+                        <canvas id="line-grid-chart-${line.line_id}"></canvas>
+                    </div>
                 </div>
             </div>
-            <div style="font-size: 11px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
-                <span>Accuracy: <strong id="line-grid-accuracy-${line.line_id}" style="color: var(--cyan);">—</strong></span>
-                <span>Time left: <strong id="line-grid-time-${line.line_id}" style="color: var(--amber);">—</strong></span>
+
+            <div style="font-size: 11px; color: var(--text-muted); text-align: right; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-top: auto;">
+                Click to view machine breakdown →
             </div>
         `;
         grid.appendChild(card);
@@ -568,8 +589,7 @@ function showLineDetails(lineId) {
     window.APP.activeLineId = lineId;
     window.APP.activeMachineId = null;
     destroyLineDetailCharts();
-    destroyMachineHistoryChart();
-    
+
     const container = document.getElementById('lines-container');
     if (!container) return;
     container.innerHTML = '';
@@ -589,20 +609,31 @@ function showLineDetails(lineId) {
     let machinesHtml = '';
     (line.machines || []).forEach(m => {
         machinesHtml += `
-            <div class="card machine-block-card" id="machine-block-${m.machine_id}" style="cursor: pointer; padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease; background: linear-gradient(135deg, rgba(20,27,40,0.8) 0%, rgba(10,15,25,0.9) 100%); border: 1px solid var(--border); border-radius: var(--radius);">
+            <div class="card machine-block-card" id="machine-block-${m.machine_id}" style="cursor: pointer; padding: 20px; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease; background: linear-gradient(135deg, rgba(20,27,40,0.85) 0%, rgba(10,15,25,0.95) 100%); border: 1px solid var(--border); border-radius: var(--radius);">
                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
                     <h4 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-primary);">${m.machine_name}</h4>
                     <span class="machine-status-badge mono" id="m-selector-status-${m.machine_id}" style="font-size: 9px; padding: 1px 6px; border-radius: 10px; font-weight: 700; border: 1px solid currentColor;">UNKNOWN</span>
                 </div>
-                <div style="font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
-                    Completion:
+
+                <!-- 2 Machine Pie Charts Side by Side -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 5px 0;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <span style="font-size: 9px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">Prod Progress</span>
+                        <div style="width: 110px; height: 110px; position: relative;">
+                            <canvas id="m-prod-chart-${m.machine_id}"></canvas>
+                        </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <span style="font-size: 9px; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 4px; font-weight: 600;">Time Breakdown</span>
+                        <div style="width: 110px; height: 110px; position: relative;">
+                            <canvas id="m-time-chart-${m.machine_id}"></canvas>
+                        </div>
+                    </div>
                 </div>
-                <div style="font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary);">
-                    <span id="m-selector-actual-${m.machine_id}">—</span> / <span id="m-selector-target-${m.machine_id}">—</span>
-                </div>
-                <div style="font-size: 10px; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+
+                <div style="font-size: 11px; color: var(--text-secondary); display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                    <span>Progress: <strong id="m-selector-actual-${m.machine_id}" style="color: #50c878;">—</strong> / <span id="m-selector-target-${m.machine_id}">—</span></span>
                     <span>Accuracy: <strong id="m-selector-accuracy-${m.machine_id}" style="color: var(--cyan);">—</strong></span>
-                    <span>Click for details →</span>
                 </div>
             </div>
         `;
@@ -641,10 +672,10 @@ function showLineDetails(lineId) {
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-            <h3 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0;">Select Machine to View History:</h3>
+            <h3 style="font-size:14px; font-weight:600; color:var(--text-secondary); margin:0;">Machines Overview (2 Pie Charts per Machine):</h3>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
             ${machinesHtml}
         </div>
     `;
@@ -670,6 +701,8 @@ function showLineDetails(lineId) {
                 showMachineDetails(lineId, m.machine_id);
             });
         }
+        updateMachineProdPieChart(m.machine_id, 0, 1000);
+        updateMachineTimePieChart(m.machine_id, 0, 0, 0);
     });
 }
 
@@ -730,7 +763,7 @@ function showMachineDetails(lineId, machineId) {
                     <div id="m-show-accuracy-${m.machine_id}" style="font-size: 18px; font-weight: 700; color: var(--cyan); font-family: 'JetBrains Mono', monospace;">—</div>
                 </div>
                 <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
-                    <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Yield</div>
+                    <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase;">Yield Status</div>
                     <div id="m-show-yield-${m.machine_id}" style="font-size: 18px; font-weight: 700; color: var(--green); font-family: 'JetBrains Mono', monospace;">—</div>
                 </div>
                 <div style="background: rgba(255,255,255,0.01); border: 1px solid var(--border); border-radius: 8px; padding: 12px;">
@@ -740,36 +773,23 @@ function showMachineDetails(lineId, machineId) {
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: 280px 1fr; gap: 20px; min-height: 350px;">
-            <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-card); border: 1px solid var(--border);">
+        <!-- 2 Large Machine Pie Chart Cards Side by Side -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-card); border: 1px solid var(--border); min-height: 320px;">
                 <div class="card-header" style="padding: 0 0 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                    <h3 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin:0;">State Durations</h3>
+                    <h3 style="font-size: 14px; font-weight: 600; color: var(--cyan); margin:0;">1. Target vs Production Progress</h3>
                 </div>
-                <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative; height: 180px;">
-                    <canvas id="m-detail-chart-${m.machine_id}" width="180" height="180"></canvas>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 6px; font-size: 11px; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace; border-top: 1px dashed rgba(255,255,255,0.05); padding-top: 10px;">
-                    <div style="display:flex; justify-content:space-between;">
-                        <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#22c55e; margin-right:6px;"></span>Runtime:</span>
-                        <strong style="color: #22c55e;" id="m-show-val-run-${m.machine_id}">0s</strong>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b; margin-right:6px;"></span>Idle Time:</span>
-                        <strong style="color: #f59e0b;" id="m-show-val-idle-${m.machine_id}">0s</strong>
-                    </div>
-                    <div style="display:flex; justify-content:space-between;">
-                        <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ef4444; margin-right:6px;"></span>Breakdown:</span>
-                        <strong style="color: #ef4444;" id="m-show-val-break-${m.machine_id}">0s</strong>
-                    </div>
+                <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative; height: 220px;">
+                    <canvas id="m-prod-chart-${m.machine_id}"></canvas>
                 </div>
             </div>
 
-            <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-card); border: 1px solid var(--border);">
-                <div class="card-header" style="padding: 0 0 10px; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-between; align-items: center;">
-                    <h3 style="font-size: 14px; font-weight: 600; color: var(--text-primary); margin:0;">Historical Trend (Last 30 Min)</h3>
-                    <span class="chip" style="font-size: 9px;">Live Updating</span>
+            <div class="card" style="padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--bg-card); border: 1px solid var(--border); min-height: 320px;">
+                <div class="card-header" style="padding: 0 0 10px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                    <h3 style="font-size: 14px; font-weight: 600; color: var(--green); margin:0;">2. Operating Time Breakdown</h3>
                 </div>
-                <div id="m-history-chart-container" style="flex: 1; height: 230px; position: relative;">
+                <div style="flex: 1; display: flex; align-items: center; justify-content: center; position: relative; height: 220px;">
+                    <canvas id="m-time-chart-${m.machine_id}"></canvas>
                 </div>
             </div>
         </div>
@@ -781,167 +801,28 @@ function showMachineDetails(lineId, machineId) {
         showLineDetails(lineId);
     });
 
-    requestAnimationFrame(() => {
-        destroyLineDetailCharts();
-        window.APP.lineCharts = {};
-
-        const canvas = document.getElementById(`m-detail-chart-${m.machine_id}`);
-        if (canvas) {
-            const ctx = canvas.getContext('2d');
-            window.APP.lineCharts[m.machine_id] = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Runtime', 'Idle', 'Breakdown'],
-                    datasets: [{
-                        data: [1, 0, 0],
-                        backgroundColor: ['rgba(255,255,255,0.05)', '#f59e0b', '#ef4444'],
-                        borderColor: 'rgba(15, 21, 32, 0.95)',
-                        borderWidth: 1.5,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => ` ${ctx.label}: ${formatDurationSeconds(ctx.raw)}`
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        fetchMachineHistory(m);
-    });
+    updateMachineProdPieChart(m.machine_id, 0, 1000);
+    updateMachineTimePieChart(m.machine_id, 0, 0, 0);
 }
 
 function destroyLineDetailCharts() {
-    if (window.APP.lineCharts) {
-        Object.keys(window.APP.lineCharts).forEach(key => {
-            if (window.APP.lineCharts[key]) {
-                window.APP.lineCharts[key].destroy();
-            }
-        });
-        window.APP.lineCharts = null;
-    }
+    ['lineGridCharts', 'machineProdCharts', 'machineTimeCharts', 'lineCharts'].forEach(group => {
+        if (window.APP[group]) {
+            Object.keys(window.APP[group]).forEach(key => {
+                if (window.APP[group][key]) {
+                    try { window.APP[group][key].destroy(); } catch (e) {}
+                }
+            });
+        }
+    });
+    window.APP.lineGridCharts = {};
+    window.APP.machineProdCharts = {};
+    window.APP.machineTimeCharts = {};
+    window.APP.lineCharts = {};
 }
 
 function destroyMachineHistoryChart() {
-    if (window.APP.machineHistoryChart) {
-        window.APP.machineHistoryChart.destroy();
-        window.APP.machineHistoryChart = null;
-    }
-}
-
-async function fetchMachineHistory(m) {
-    const chartContainer = document.getElementById(`m-history-chart-container`);
-    if (!chartContainer) return;
-    
-    chartContainer.innerHTML = '<div class="spinner"><div class="spinner-ring"></div> Fetching history data…</div>';
-    
-    const mRegs = m.registers || {};
-    const addresses = [mRegs.target, mRegs.actual, mRegs.accuracy, mRegs.runtime, mRegs.idle_time, mRegs.breakdown_time].filter(Boolean);
-    if (!addresses.length) {
-        chartContainer.innerHTML = '<div class="empty-state"><p>No registers configured for this machine</p></div>';
-        return;
-    }
-    
-    try {
-        const ip = window.APP.activePLC?.ip || '';
-        const port = window.APP.activePLC?.port || '';
-        const url = `/api/registers/history?minutes=30&plc_ip=${ip}&plc_port=${port}`;
-        const resp = await fetch(url);
-        if (!resp.ok) throw new Error('API error');
-        
-        const historyData = await resp.json();
-        
-        chartContainer.innerHTML = '<canvas id="m-history-line-chart" style="width: 100%; height: 100%;"></canvas>';
-        
-        const datasets = [];
-        const colors = {
-            target: '#60a5fa',
-            actual: '#4ade80',
-            runtime: '#22c55e',
-            idle_time: '#fbbf24',
-            breakdown_time: '#f87171'
-        };
-        const labels = {
-            target: 'Target Count',
-            actual: 'Actual Count',
-            runtime: 'Runtime (s)',
-            idle_time: 'Idle Time (s)',
-            breakdown_time: 'Breakdown Time (s)'
-        };
-        
-        Object.keys(mRegs).forEach(key => {
-            const addr = mRegs[key];
-            if (addr && historyData[addr] && ['target', 'actual', 'runtime', 'idle_time', 'breakdown_time'].includes(key)) {
-                const pts = historyData[addr] || [];
-                const dataPts = pts.map(p => ({ x: new Date(p.timestamp), y: p.value }));
-                
-                datasets.push({
-                    label: labels[key] || key,
-                    data: dataPts,
-                    borderColor: colors[key] || '#a78bfa',
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    pointRadius: 0,
-                    pointHoverRadius: 4,
-                    tension: 0.2,
-                    fill: false
-                });
-            }
-        });
-        
-        const ctx = document.getElementById('m-history-line-chart').getContext('2d');
-        destroyMachineHistoryChart();
-        
-        window.APP.machineHistoryChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: datasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: { color: 'var(--text-secondary)', font: { size: 10 } }
-                    },
-                    tooltip: {
-                        mode: 'index',
-                        intersect: false,
-                        bodyFont: { family: 'JetBrains Mono', size: 11 },
-                    }
-                },
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: {
-                            tooltipFormat: 'HH:mm:ss',
-                            displayFormats: { second: 'HH:mm:ss', minute: 'HH:mm', hour: 'HH:mm' }
-                        },
-                        grid: { color: 'rgba(255,255,255,0.04)' },
-                        ticks: { color: '#64748b', font: { size: 10 } }
-                    },
-                    y: {
-                        grid: { color: 'rgba(255,255,255,0.04)' },
-                        ticks: { color: '#64748b', font: { size: 10 } }
-                    }
-                }
-            }
-        });
-        
-    } catch (e) {
-        console.error('History fetch error:', e);
-        chartContainer.innerHTML = '<div class="empty-state"><p style="color: var(--red)">Failed to load historical trend data</p></div>';
-    }
+    destroyLineDetailCharts();
 }
 
 window.updateLineGridPieChart = function(lineId, actual, target) {
@@ -954,8 +835,14 @@ window.updateLineGridPieChart = function(lineId, actual, target) {
     const tgtVal = Math.max(actVal, Number(target) || 0);
     const remVal = Math.max(0, tgtVal - actVal);
 
-    if (window.APP.lineGridCharts[lineId]) {
-        const chart = window.APP.lineGridCharts[lineId];
+    let chart = window.APP.lineGridCharts[lineId];
+    if (chart && chart.canvas !== canvas) {
+        try { chart.destroy(); } catch(e) {}
+        chart = null;
+        window.APP.lineGridCharts[lineId] = null;
+    }
+
+    if (chart) {
         chart.data.datasets[0].data = [actVal, remVal];
         chart.update('none');
     } else {
@@ -963,7 +850,60 @@ window.updateLineGridPieChart = function(lineId, actual, target) {
         window.APP.lineGridCharts[lineId] = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ['Production Achieved', 'Target Shortfall'],
+                labels: ['Current Production', 'Target Shortfall'],
+                datasets: [{
+                    data: [actVal, remVal],
+                    backgroundColor: ['#50c878', 'rgba(255,255,255,0.08)'],
+                    borderColor: '#0f1520',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: { color: '#8a9bb5', font: { family: 'Inter', size: 9 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${ctx.raw}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+};
+
+window.updateMachineProdPieChart = function(machineId, actual, target) {
+    const canvas = document.getElementById(`m-prod-chart-${machineId}`);
+    if (!canvas) return;
+
+    window.APP.machineProdCharts = window.APP.machineProdCharts || {};
+
+    const actVal = Math.max(0, Number(actual) || 0);
+    const tgtVal = Math.max(actVal, Number(target) || 0);
+    const remVal = Math.max(0, tgtVal - actVal);
+
+    let chart = window.APP.machineProdCharts[machineId];
+    if (chart && chart.canvas !== canvas) {
+        try { chart.destroy(); } catch(e) {}
+        chart = null;
+        window.APP.machineProdCharts[machineId] = null;
+    }
+
+    if (chart) {
+        chart.data.datasets[0].data = [actVal, remVal];
+        chart.update('none');
+    } else {
+        const ctx = canvas.getContext('2d');
+        window.APP.machineProdCharts[machineId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Actual Production', 'Target Shortfall'],
                 datasets: [{
                     data: [actVal, remVal],
                     backgroundColor: ['#00d4ff', 'rgba(255,255,255,0.08)'],
@@ -975,10 +915,72 @@ window.updateLineGridPieChart = function(lineId, actual, target) {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: { color: '#8a9bb5', font: { family: 'Inter', size: 9 } }
+                    },
                     tooltip: {
                         callbacks: {
                             label: ctx => ` ${ctx.label}: ${ctx.raw}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+};
+
+window.updateMachineTimePieChart = function(machineId, runSec, idleSec, breakSec) {
+    const canvas = document.getElementById(`m-time-chart-${machineId}`);
+    if (!canvas) return;
+
+    window.APP.machineTimeCharts = window.APP.machineTimeCharts || {};
+
+    const run = Math.max(0, Number(runSec) || 0);
+    const idle = Math.max(0, Number(idleSec) || 0);
+    const brk = Math.max(0, Number(breakSec) || 0);
+    const total = run + idle + brk;
+
+    const dataVals = total > 0 ? [run, idle, brk] : [1, 0, 0];
+    const bgColors = total > 0 ? ['#22c55e', '#f59e0b', '#ef4444'] : ['rgba(255,255,255,0.05)', '#f59e0b', '#ef4444'];
+
+    let chart = window.APP.machineTimeCharts[machineId];
+    if (chart && chart.canvas !== canvas) {
+        try { chart.destroy(); } catch(e) {}
+        chart = null;
+        window.APP.machineTimeCharts[machineId] = null;
+    }
+
+    if (chart) {
+        chart.data.datasets[0].data = dataVals;
+        chart.data.datasets[0].backgroundColor = bgColors;
+        chart.update('none');
+    } else {
+        const ctx = canvas.getContext('2d');
+        window.APP.machineTimeCharts[machineId] = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Runtime', 'Idle Time', 'Breakdown Time'],
+                datasets: [{
+                    data: dataVals,
+                    backgroundColor: bgColors,
+                    borderColor: '#0f1520',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: { color: '#8a9bb5', font: { family: 'Inter', size: 9 } }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.label}: ${formatDurationSeconds(ctx.raw)}`
                         }
                     }
                 }
@@ -1087,6 +1089,10 @@ function renderLinesLiveData(data) {
                     }
                 }
 
+                // Update the 2 Pie Charts for this Machine (Target vs Production & Operating Time)
+                updateMachineProdPieChart(m.machine_id, mActual, mTarget);
+                updateMachineTimePieChart(m.machine_id, mRun, mIdle, mBreak);
+
                 if (window.APP.activeMachineId === m.machine_id) {
                     const elShowTarget = document.getElementById(`m-show-target-${m.machine_id}`);
                     const elShowActual = document.getElementById(`m-show-actual-${m.machine_id}`);
@@ -1125,62 +1131,6 @@ function renderLinesLiveData(data) {
                                 elShowYield.style.color = 'var(--green)';
                             }
                         }
-                    }
-
-                    const elShowValRun = document.getElementById(`m-show-val-run-${m.machine_id}`);
-                    const elShowValIdle = document.getElementById(`m-show-val-idle-${m.machine_id}`);
-                    const elShowValBreak = document.getElementById(`m-show-val-break-${m.machine_id}`);
-
-                    if (elShowValRun) elShowValRun.textContent = formatDurationSeconds(mRun);
-                    if (elShowValIdle) elShowValIdle.textContent = formatDurationSeconds(mIdle);
-                    if (elShowValBreak) elShowValBreak.textContent = formatDurationSeconds(mBreak);
-
-                    if (window.APP.lineCharts && window.APP.lineCharts[m.machine_id]) {
-                        const chart = window.APP.lineCharts[m.machine_id];
-                        const totalSec = mRun + mBreak + mIdle;
-                        
-                        if (totalSec > 0) {
-                            chart.data.datasets[0].data = [mRun, mIdle, mBreak];
-                            chart.data.datasets[0].backgroundColor = ['#22c55e', '#f59e0b', '#ef4444'];
-                        } else {
-                            chart.data.datasets[0].data = [1, 0, 0];
-                            chart.data.datasets[0].backgroundColor = ['rgba(255,255,255,0.05)', '#f59e0b', '#ef4444'];
-                        }
-                        chart.update('none');
-                    }
-
-                    if (window.APP.machineHistoryChart) {
-                        const lChart = window.APP.machineHistoryChart;
-                        const ts = new Date(data.timestamp);
-                        
-                        const keys = {
-                            target: mTarget,
-                            actual: mActual,
-                            runtime: mRun,
-                            idle_time: mIdle,
-                            breakdown_time: mBreak
-                        };
-                        const labels = {
-                            target: 'Target Count',
-                            actual: 'Actual Count',
-                            runtime: 'Runtime (s)',
-                            idle_time: 'Idle Time (s)',
-                            breakdown_time: 'Breakdown Time (s)'
-                        };
-                        
-                        Object.keys(keys).forEach(k => {
-                            const val = keys[k];
-                            if (val !== null) {
-                                let dataset = lChart.data.datasets.find(ds => ds.label === labels[k]);
-                                if (dataset) {
-                                    dataset.data.push({ x: ts, y: Number(val) });
-                                    if (dataset.data.length > 100) {
-                                        dataset.data.shift();
-                                    }
-                                }
-                            }
-                        });
-                        lChart.update('none');
                     }
                 }
             });

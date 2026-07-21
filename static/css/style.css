@@ -1249,6 +1249,17 @@ body.mode-web #nav-history {
     background: rgba(0, 212, 255, 0.1);
     color: var(--cyan);
     border-left: 3px solid var(--cyan);
+/* Desktop Mode: Hide DataViewer & Reports tab */
+body.mode-desktop #nav-history {
+    display: none !important;
+}
+
+body.mode-desktop .sidebar-brand .brand-text::after {
+    content: " (MONITOR)";
+    font-size: 10px;
+    color: var(--purple);
+    display: block;
+    font-weight: 500;
 }
 
 
