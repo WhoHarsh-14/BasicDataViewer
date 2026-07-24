@@ -1,5 +1,30 @@
 {
-  "poll_interval_seconds": 0.5,
-  "shift_duration_hours": 8,
-  "shift_start_hour": 6
+  "plc": {
+    "ip": "192.168.1.10",
+    "port": 5000,
+    "poll_interval_seconds": 0.5,
+    "simulation_mode": true
+  },
+  "database": {
+    "url": "postgresql+asyncpg://neondb_owner:npg_Ez2geFGf5XuH@ep-square-frost-ao525947.c-2.ap-southeast-1.aws.neon.tech/neondb?ssl=require",
+    "url_sync": "postgresql+psycopg2://neondb_owner:npg_Ez2geFGf5XuH@ep-square-frost-ao525947.c-2.ap-southeast-1.aws.neon.tech/neondb?ssl=require",
+    "type": "postgresql",
+    "host": "localhost",
+    "port": 5432,
+    "name": "tag_monitor",
+    "user": "postgres",
+    "password": "postgres"
+  },
+  "shift": {
+    "shift_duration_hours": 8,
+    "shift_start_hour": 6
+  },
+  "admin": {
+    "user": "admin",
+    "pass": "admin123"
+  },
+  "server": {
+    "web_host": "0.0.0.0",
+    "web_port": 8000
+  }
 }

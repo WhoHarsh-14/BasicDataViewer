@@ -1,0 +1,242 @@
+[
+  {
+    "name": "TEMP",
+    "address": "D100-D105",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Breakdown Time",
+    "address": "D314",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Idle Time",
+    "address": "D315",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Runtime",
+    "address": "D316",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Product Type",
+    "address": "D317",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Target",
+    "address": "D320",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Actual",
+    "address": "D321",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Runtime",
+    "address": "D426",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Target",
+    "address": "D300",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Actual",
+    "address": "D102",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Accuracy",
+    "address": "D302",
+    "data_type": "float"
+  },
+  {
+    "name": "Assembly Line 1 - Time To Complete",
+    "address": "D303",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Target",
+    "address": "D310",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Actual",
+    "address": "D100",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Accuracy",
+    "address": "D312",
+    "data_type": "float"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Time To Complete",
+    "address": "D313",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Breakdown Time",
+    "address": "D314",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Idle Time",
+    "address": "D315",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Runtime",
+    "address": "D316",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - Robotic Welder - Product Type",
+    "address": "D317",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Target",
+    "address": "D320",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Actual",
+    "address": "D321",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Accuracy",
+    "address": "D322",
+    "data_type": "float"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Time To Complete",
+    "address": "D323",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Breakdown Time",
+    "address": "D324",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Idle Time",
+    "address": "D325",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Runtime",
+    "address": "D326",
+    "data_type": "int"
+  },
+  {
+    "name": "Assembly Line 1 - CNC Mill - Product Type",
+    "address": "D327",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Target",
+    "address": "D400",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Actual",
+    "address": "D401",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Accuracy",
+    "address": "D402",
+    "data_type": "float"
+  },
+  {
+    "name": "Packaging Line 2 - Time To Complete",
+    "address": "D403",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Target",
+    "address": "D410",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Actual",
+    "address": "D411",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Accuracy",
+    "address": "D412",
+    "data_type": "float"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Time To Complete",
+    "address": "D413",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Breakdown Time",
+    "address": "D414",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Idle Time",
+    "address": "D415",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Runtime",
+    "address": "D416",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Labeler - Product Type",
+    "address": "D417",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Target",
+    "address": "D420",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Actual",
+    "address": "D421",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Accuracy",
+    "address": "D422",
+    "data_type": "float"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Time To Complete",
+    "address": "D423",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Breakdown Time",
+    "address": "D424",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Idle Time",
+    "address": "D425",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Runtime",
+    "address": "D426",
+    "data_type": "int"
+  },
+  {
+    "name": "Packaging Line 2 - Sealer - Product Type",
+    "address": "D427",
+    "data_type": "int"
+  }
+]

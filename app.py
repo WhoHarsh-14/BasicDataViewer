@@ -22,7 +22,10 @@ from sqlalchemy import select, desc, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 import json
 
-from config import SIMULATION_MODE, PLC_IP, PLC_PORT, ADMIN_USER, ADMIN_PASS
+from config import (
+    SIMULATION_MODE, PLC_IP, PLC_PORT, ADMIN_USER, ADMIN_PASS,
+    load_system_config, save_system_config, SYSTEM_CONFIG_PATH
+)
 from database import (
     init_db, get_session, async_session_factory, Base,
     PLCReading, BitInput, BitOutput, WordRegister, DrawCommand, Company, ShiftRecord, ShiftSummary
@@ -97,13 +100,47 @@ async def serve_dashboard():
 @app.get("/api/status")
 async def get_status():
     """Current system status including PLC connection and config."""
+    cfg = load_system_config()
     return {
         "plc_connected": poller.connected,
         "simulation_mode": poller.simulation_mode,
         "plc_ip": poller.plc_ip,
         "plc_port": poller.plc_port,
         "websocket_clients": len(poller.websocket_clients),
+        "config_path": SYSTEM_CONFIG_PATH,
+        "database": cfg.get("database", {}),
     }
+
+
+@app.get("/api/config")
+async def get_system_config():
+    """Get complete system_config.json configuration."""
+    return {
+        "config_path": SYSTEM_CONFIG_PATH,
+        "config": load_system_config(),
+    }
+
+
+@app.post("/api/config")
+async def update_system_config(new_config: dict):
+    """Update system_config.json dynamically and reapply configuration settings."""
+    try:
+        updated = save_system_config(new_config)
+        # Apply updated PLC target to poller if present
+        plc_cfg = updated.get("plc", {})
+        poller.set_target(
+            plc_cfg.get("ip", poller.plc_ip),
+            int(plc_cfg.get("port", poller.plc_port)),
+            bool(plc_cfg.get("simulation_mode", poller.simulation_mode))
+        )
+        return {
+            "status": "success",
+            "message": f"Saved system_config.json to {SYSTEM_CONFIG_PATH}",
+            "config": updated
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update config: {e}")
+
 
 
 class PLCConnectRequest(BaseModel):

@@ -30,7 +30,7 @@ let pythonProcess = null;
 app.isQuitting    = false;
 
 // ══════════════════════════════════════════════════════════════
-// BACKEND — Spawn Python FastAPI
+// BACKEND — Spawn Python FastAPI (Executable or Script)
 // ══════════════════════════════════════════════════════════════
 function startBackend() {
   // When packaged: backend is in process.resourcesPath/backend/
@@ -39,48 +39,68 @@ function startBackend() {
     ? path.join(process.resourcesPath, 'backend')
     : path.join(__dirname, '..');
 
-  const scriptPath = path.join(backendDir, 'run_web.py');
-
-  // ── Find the right Python ──────────────────────────────────
-  // Priority: .venv > venv > system python
-  // On Windows, venv Python is at Scripts/python.exe
-  const venvCandidates = [
-    path.join(backendDir, '.venv', 'Scripts', 'python.exe'),
-    path.join(backendDir, 'venv',  'Scripts', 'python.exe'),
-    path.join(backendDir, '.venv', 'bin', 'python'),
-    path.join(backendDir, 'venv',  'bin', 'python'),
+  // Check for standalone PyInstaller compiled executable
+  const exeCandidates = [
+    path.join(backendDir, 'run_web', 'run_web.exe'),
+    path.join(backendDir, 'run_web.exe'),
+    path.join(__dirname, '..', 'dist_backend', 'run_web', 'run_web.exe'),
   ];
 
-  let pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-  for (const candidate of venvCandidates) {
+  let binaryCmd = null;
+  for (const candidate of exeCandidates) {
     if (fs.existsSync(candidate)) {
-      pythonCmd = candidate;
-      console.log(`[Electron] Using venv Python: ${pythonCmd}`);
+      binaryCmd = candidate;
+      console.log(`[Electron] Found standalone backend executable: ${binaryCmd}`);
       break;
     }
   }
 
-  console.log(`[Electron] Starting backend on port ${BACKEND_PORT}: ${pythonCmd} ${scriptPath}`);
-  console.log(`[Electron] Working dir: ${backendDir}`);
+  if (binaryCmd) {
+    console.log(`[Electron] Starting compiled backend on port ${BACKEND_PORT}`);
+    pythonProcess = spawn(binaryCmd, [], {
+      cwd: path.dirname(binaryCmd),
+      stdio: 'pipe',
+      windowsHide: true,
+      env: { ...process.env, WEB_PORT: String(BACKEND_PORT) },
+    });
+  } else {
+    // Fallback to python script execution
+    const scriptPath = path.join(backendDir, 'run_web.py');
+    const venvCandidates = [
+      path.join(backendDir, '.venv', 'Scripts', 'python.exe'),
+      path.join(backendDir, 'venv',  'Scripts', 'python.exe'),
+      path.join(backendDir, '.venv', 'bin', 'python'),
+      path.join(backendDir, 'venv',  'bin', 'python'),
+    ];
 
-  pythonProcess = spawn(pythonCmd, [scriptPath], {
-    cwd: backendDir,
-    stdio: 'pipe',
-    windowsHide: true,
-    env: { ...process.env, WEB_PORT: String(BACKEND_PORT) },
-  });
+    let pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    for (const candidate of venvCandidates) {
+      if (fs.existsSync(candidate)) {
+        pythonCmd = candidate;
+        console.log(`[Electron] Using venv Python: ${pythonCmd}`);
+        break;
+      }
+    }
 
+    console.log(`[Electron] Starting backend via Python: ${pythonCmd} ${scriptPath}`);
+    pythonProcess = spawn(pythonCmd, [scriptPath], {
+      cwd: backendDir,
+      stdio: 'pipe',
+      windowsHide: true,
+      env: { ...process.env, WEB_PORT: String(BACKEND_PORT) },
+    });
+  }
 
   pythonProcess.stdout.on('data', (data) => {
-    process.stdout.write(`[Python] ${data}`);
+    process.stdout.write(`[Backend] ${data}`);
   });
 
   pythonProcess.stderr.on('data', (data) => {
-    process.stderr.write(`[Python] ${data}`);
+    process.stderr.write(`[Backend] ${data}`);
   });
 
   pythonProcess.on('exit', (code, signal) => {
-    console.log(`[Electron] Python exited — code=${code}, signal=${signal}`);
+    console.log(`[Electron] Backend process exited — code=${code}, signal=${signal}`);
     if (!app.isQuitting && mainWindow) {
       mainWindow.webContents.executeJavaScript(
         `document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#080c14;color:#e8edf5;font-family:Inter,sans-serif;flex-direction:column;gap:16px"><h2>Backend process stopped</h2><p style="color:#576070">Restart the application to reconnect.</p></div>'`
@@ -89,10 +109,10 @@ function startBackend() {
   });
 
   pythonProcess.on('error', (err) => {
-    console.error(`[Electron] Failed to spawn Python: ${err.message}`);
+    console.error(`[Electron] Failed to spawn backend process: ${err.message}`);
     if (splashWindow) {
       splashWindow.webContents.executeJavaScript(
-        `document.getElementById('status').textContent = 'Error: Could not start Python. Is Python in your PATH?'`
+        `document.getElementById('status').textContent = 'Error: Could not start backend process.'`
       ).catch(() => {});
     }
   });
@@ -247,6 +267,17 @@ function createTray() {
     {
       label: 'Open Web Dashboard',
       click: () => shell.openExternal(BACKEND_URL),
+    },
+    {
+      label: 'Open Config Directory (%APPDATA%)',
+      click: () => {
+        const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME, 'Library', 'Preferences') : path.join(process.env.HOME, '.config'));
+        const configPath = path.join(appData, 'PLC Tag Monitor');
+        if (!fs.existsSync(configPath)) {
+          fs.mkdirSync(configPath, { recursive: true });
+        }
+        shell.openPath(configPath);
+      },
     },
     { type: 'separator' },
     {

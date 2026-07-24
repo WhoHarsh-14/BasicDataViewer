@@ -16,7 +16,7 @@ import os
 import struct
 from datetime import datetime, timezone
 
-from config import PLC_IP, PLC_PORT, PLC_POLL_INTERVAL, SIMULATION_MODE
+from config import PLC_IP, PLC_PORT, PLC_POLL_INTERVAL, SIMULATION_MODE, get_config_file_path
 from shift_manager import shift_manager
 
 logger = logging.getLogger("plc_poller")
@@ -38,7 +38,7 @@ class PLCPoller:
         self.lines_layout = []
 
         # Dynamic register configuration path
-        self.config_path = os.path.join(os.path.dirname(__file__), "register_config.json")
+        self.config_path = get_config_file_path("register_config.json")
         self.registers_config = []
         self.expanded_config = []
         self.load_registers_config()
@@ -59,7 +59,7 @@ class PLCPoller:
                 self.registers_config = json.load(f)
 
             # Load line_config.json and append registers
-            line_cfg_path = os.path.join(os.path.dirname(__file__), "line_config.json")
+            line_cfg_path = get_config_file_path("line_config.json")
             if os.path.exists(line_cfg_path):
                 with open(line_cfg_path, 'r') as f:
                     self.lines_layout = json.load(f)

@@ -15,10 +15,23 @@
       "output": "dist"
     },
     "win": {
-      "target": "nsis",
-      "icon": "icon.ico"
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "PLC Tag Monitor"
     },
     "extraResources": [
+      {
+        "from": "../dist_backend/run_web",
+        "to": "backend/run_web",
+        "filter": [
+          "**/*"
+        ]
+      },
       {
         "from": "../",
         "to": "backend",
@@ -28,8 +41,11 @@
           "database.py",
           "config.py",
           "schemas.py",
+          "shift_manager.py",
           "run_web.py",
-          "requirements.txt",
+          "system_config.json",
+          "line_config.json",
+          "register_config.json",
           "static/**"
         ]
       }
@@ -40,3 +56,4 @@
     "electron-builder": "^24.13.0"
   }
 }
+
