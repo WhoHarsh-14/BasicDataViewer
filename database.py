@@ -3,6 +3,7 @@
 Includes ShiftRecord for shift metadata and batch insert helpers for
 the shift-based buffering system.
 """
+import asyncio
 import json
 import logging
 import struct
@@ -17,10 +18,11 @@ from sqlalchemy.orm import relationship, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.sql import func
 
-from config import DATABASE_URL
+from config import DATABASE_URL, SQLITE_URL
 
 logger = logging.getLogger("database")
 Base = declarative_base()
+
 
 
 # ══════════════════════════════════════════════════════════════
@@ -236,29 +238,58 @@ async_engine = create_async_engine(DATABASE_URL, echo=False)
 async_session_factory = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
 
 
-async def init_db():
-    """Create all tables if they don't already exist. Data is preserved across restarts."""
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+async def _run_migrations(conn):
+    """Run schema migrations for PostgreSQL deployments."""
+    if conn.dialect.name != "postgresql":
+        return
+    migrations = [
+        "ALTER TABLE word_registers ALTER COLUMN address TYPE VARCHAR(50);",
+        "ALTER TABLE word_registers ALTER COLUMN value TYPE VARCHAR(255);",
+        "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS data_type VARCHAR(20) DEFAULT 'int';",
+        "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS value_int INTEGER;",
+        "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS value_float DOUBLE PRECISION;",
+        "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS value_str VARCHAR(255);",
+        "ALTER TABLE draw_commands ADD COLUMN IF NOT EXISTS register VARCHAR(20) DEFAULT 'D200';",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS password VARCHAR(100) DEFAULT 'demo123';",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS plc_ip VARCHAR(50) DEFAULT '192.168.1.10';",
+        "ALTER TABLE companies ADD COLUMN IF NOT EXISTS plc_port INTEGER DEFAULT 5000;",
+    ]
+    for stmt in migrations:
+        try:
+            await conn.execute(text(stmt))
+        except Exception as e:
+            logger.debug(f"Migration notice: {e}")
 
-        # Schema migrations for existing deployments
-        migrations = [
-            "ALTER TABLE word_registers ALTER COLUMN address TYPE VARCHAR(50);",
-            "ALTER TABLE word_registers ALTER COLUMN value TYPE VARCHAR(255);",
-            "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS data_type VARCHAR(20) DEFAULT 'int';",
-            "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS value_int INTEGER;",
-            "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS value_float DOUBLE PRECISION;",
-            "ALTER TABLE word_registers ADD COLUMN IF NOT EXISTS value_str VARCHAR(255);",
-            "ALTER TABLE draw_commands ADD COLUMN IF NOT EXISTS register VARCHAR(20) DEFAULT 'D200';",
-            "ALTER TABLE companies ADD COLUMN IF NOT EXISTS password VARCHAR(100) DEFAULT 'demo123';",
-            "ALTER TABLE companies ADD COLUMN IF NOT EXISTS plc_ip VARCHAR(50) DEFAULT '192.168.1.10';",
-            "ALTER TABLE companies ADD COLUMN IF NOT EXISTS plc_port INTEGER DEFAULT 5000;",
-        ]
-        for stmt in migrations:
-            try:
-                await conn.execute(text(stmt))
-            except Exception as e:
-                logger.debug(f"Migration notice: {e}")
+
+async def init_db():
+    """Create all tables if they don't already exist. Fallback to local SQLite if primary database is unreachable."""
+    global async_engine, async_session_factory
+
+    db_ready = False
+    try:
+        logger.info(f"Attempting database connection to primary target...")
+        async with asyncio.timeout(5.0):
+            async with async_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+                await _run_migrations(conn)
+        db_ready = True
+        logger.info("✓ Connected to primary database successfully")
+    except Exception as e:
+        logger.warning(f"⚠️ Primary database connection failed or timed out ({e}). Falling back to local SQLite database.")
+
+    if not db_ready:
+        try:
+            async_engine = create_async_engine(
+                SQLITE_URL,
+                echo=False,
+                connect_args={"check_same_thread": False} if "sqlite" in SQLITE_URL else {}
+            )
+            async_session_factory = async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
+            async with async_engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info(f"✓ Initialized local SQLite database at {SQLITE_URL}")
+        except Exception as e:
+            logger.error(f"Failed to initialize SQLite fallback database: {e}")
 
     # Seed default company if empty
     async with async_session_factory() as session:
@@ -274,6 +305,7 @@ async def init_db():
                 logger.info("✓ Seeded default company DemoCorp")
         except Exception as e:
             logger.warning(f"Seeding warning: {e}")
+
 
 
 async def get_session() -> AsyncSession:

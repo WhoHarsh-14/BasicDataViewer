@@ -22,7 +22,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "PLC Tag Monitor"
+      "shortcutName": "PLC Tag Monitor",
+      "include": "installer.nsh"
     },
     "extraResources": [
       {
@@ -46,6 +47,8 @@
           "system_config.json",
           "line_config.json",
           "register_config.json",
+          "requirements.txt",
+          "setup_environment.ps1",
           "static/**"
         ]
       }

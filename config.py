@@ -33,6 +33,12 @@ def get_config_dir() -> str:
 
 CONFIG_DIR = get_config_dir()
 SYSTEM_CONFIG_PATH = os.path.join(CONFIG_DIR, "system_config.json")
+SQLITE_DB_PATH = os.path.join(CONFIG_DIR, "tag_monitor.db")
+_clean_sqlite_path = SQLITE_DB_PATH.replace("\\", "/")
+SQLITE_URL = f"sqlite+aiosqlite:///{_clean_sqlite_path}"
+SQLITE_URL_SYNC = f"sqlite:///{_clean_sqlite_path}"
+
+
 
 
 def get_config_file_path(filename: str) -> str:

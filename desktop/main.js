@@ -91,16 +91,28 @@ function startBackend() {
     });
   }
 
+  let backendLogs = [];
+  let backendExitedEarly = false;
+  let backendExitMessage = '';
+
   pythonProcess.stdout.on('data', (data) => {
-    process.stdout.write(`[Backend] ${data}`);
+    const text = data.toString();
+    backendLogs.push(text);
+    if (backendLogs.length > 50) backendLogs.shift();
+    process.stdout.write(`[Backend] ${text}`);
   });
 
   pythonProcess.stderr.on('data', (data) => {
-    process.stderr.write(`[Backend] ${data}`);
+    const text = data.toString();
+    backendLogs.push(text);
+    if (backendLogs.length > 50) backendLogs.shift();
+    process.stderr.write(`[Backend] ${text}`);
   });
 
   pythonProcess.on('exit', (code, signal) => {
     console.log(`[Electron] Backend process exited — code=${code}, signal=${signal}`);
+    backendExitedEarly = true;
+    backendExitMessage = `Backend process exited with code ${code}. ${backendLogs.slice(-3).join(' ')}`;
     if (!app.isQuitting && mainWindow) {
       mainWindow.webContents.executeJavaScript(
         `document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#080c14;color:#e8edf5;font-family:Inter,sans-serif;flex-direction:column;gap:16px"><h2>Backend process stopped</h2><p style="color:#576070">Restart the application to reconnect.</p></div>'`
@@ -110,7 +122,9 @@ function startBackend() {
 
   pythonProcess.on('error', (err) => {
     console.error(`[Electron] Failed to spawn backend process: ${err.message}`);
-    if (splashWindow) {
+    backendExitedEarly = true;
+    backendExitMessage = `Failed to spawn backend process: ${err.message}`;
+    if (splashWindow && !splashWindow.isDestroyed()) {
       splashWindow.webContents.executeJavaScript(
         `document.getElementById('status').textContent = 'Error: Could not start backend process.'`
       ).catch(() => {});
@@ -127,6 +141,11 @@ function waitForBackend() {
     let resolved  = false;
 
     const tryConnect = () => {
+      if (pythonProcess && pythonProcess.exitCode !== null) {
+        reject(new Error(`Backend exited early: ${pythonProcess.exitCode}`));
+        return;
+      }
+
       const req = http.get(`${BACKEND_URL}/api/status`, (res) => {
         if (resolved) return;
         if (res.statusCode === 200) {
@@ -166,6 +185,7 @@ function waitForBackend() {
 }
 
 
+
 // ══════════════════════════════════════════════════════════════
 // WINDOWS — Splash & Main
 // ══════════════════════════════════════════════════════════════
@@ -190,13 +210,13 @@ function createSplashWindow() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 880,
-    minWidth: 1000,
-    minHeight: 620,
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
     show: false,
-    title: 'PLC Tag Monitor',
-    backgroundColor: '#080c14',
+    title: 'PLC Tag Monitor — Desktop Backend Service',
+    backgroundColor: '#0b0f19',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -204,9 +224,9 @@ function createMainWindow() {
     },
   });
 
-  mainWindow.loadURL(`${BACKEND_URL}?mode=desktop`);
+  mainWindow.loadFile(path.join(__dirname, 'backend_status.html'));
 
-  // Remove default menu bar (keep keyboard shortcuts via preload)
+  // Remove default menu bar
   mainWindow.setMenuBarVisibility(false);
 
   mainWindow.once('ready-to-show', () => {
@@ -226,8 +246,8 @@ function createMainWindow() {
       if (tray) {
         tray.displayBalloon({
           iconType: 'info',
-          title: 'PLC Tag Monitor',
-          content: 'Still collecting data in the background. Right-click the tray icon to quit.',
+          title: 'PLC Tag Monitor Service',
+          content: 'Backend service is running in background. Right-click the tray icon to exit.',
         });
       }
     }
@@ -244,13 +264,11 @@ function createMainWindow() {
 // TRAY
 // ══════════════════════════════════════════════════════════════
 function createTray() {
-  // Try to load icon, fall back to empty image if not found
   let icon;
   const iconPath = path.join(__dirname, 'icon.png');
   if (fs.existsSync(iconPath)) {
     icon = nativeImage.createFromPath(iconPath);
   } else {
-    // Create a minimal 1x1 transparent icon as fallback
     icon = nativeImage.createEmpty();
   }
 
@@ -258,18 +276,14 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show Dashboard',
+      label: 'Show Control Panel',
       click: () => {
         if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
       },
     },
     { type: 'separator' },
     {
-      label: 'Open Web Dashboard',
-      click: () => shell.openExternal(BACKEND_URL),
-    },
-    {
-      label: 'Open Config Directory (%APPDATA%)',
+      label: 'Open App Data (%APPDATA%)',
       click: () => {
         const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME, 'Library', 'Preferences') : path.join(process.env.HOME, '.config'));
         const configPath = path.join(appData, 'PLC Tag Monitor');
@@ -281,7 +295,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Quit PLC Monitor',
+      label: 'Quit PLC Monitor Backend',
       click: () => {
         app.isQuitting = true;
         app.quit();
@@ -289,7 +303,7 @@ function createTray() {
     },
   ]);
 
-  tray.setToolTip('PLC Tag Monitor — Collecting Data');
+  tray.setToolTip('PLC Tag Monitor Backend — Service Active');
   tray.setContextMenu(contextMenu);
 
   tray.on('double-click', () => {

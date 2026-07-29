@@ -24,7 +24,7 @@ import json
 
 from config import (
     SIMULATION_MODE, PLC_IP, PLC_PORT, ADMIN_USER, ADMIN_PASS,
-    load_system_config, save_system_config, SYSTEM_CONFIG_PATH
+    load_system_config, save_system_config, SYSTEM_CONFIG_PATH, get_config_file_path
 )
 from database import (
     init_db, get_session, async_session_factory, Base,
@@ -572,11 +572,8 @@ async def save_registers_config(req: RegisterConfigSave):
 @app.get("/api/system/config")
 async def get_system_config():
     """Get current system_config.json values."""
-    import os
-    cfg_path = os.path.join(os.path.dirname(__file__), "system_config.json")
     try:
-        with open(cfg_path, "r") as f:
-            return json.load(f)
+        return load_system_config()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -590,22 +587,18 @@ class SystemConfigUpdate(BaseModel):
 @app.post("/api/system/config")
 async def update_system_config(req: SystemConfigUpdate):
     """
-    Update system_config.json. Changes take effect on next server restart.
-    (poll_interval and shift settings are loaded at startup)
+    Update system_config.json using writable %APPDATA% path.
     """
-    import os
-    cfg_path = os.path.join(os.path.dirname(__file__), "system_config.json")
     try:
-        with open(cfg_path, "r") as f:
-            current = json.load(f)
+        current = load_system_config()
         if req.poll_interval_seconds is not None:
-            current["poll_interval_seconds"] = req.poll_interval_seconds
+            current.setdefault("plc", {})["poll_interval_seconds"] = req.poll_interval_seconds
         if req.shift_duration_hours is not None:
-            current["shift_duration_hours"] = req.shift_duration_hours
+            current.setdefault("shift", {})["shift_duration_hours"] = req.shift_duration_hours
         if req.shift_start_hour is not None:
-            current["shift_start_hour"] = req.shift_start_hour
-        with open(cfg_path, "w") as f:
-            json.dump(current, f, indent=2)
+            current.setdefault("shift", {})["shift_start_hour"] = req.shift_start_hour
+        
+        updated = save_system_config(current)
 
         import config
         from shift_manager import shift_manager, compute_shift_window
@@ -618,7 +611,7 @@ async def update_system_config(req: SystemConfigUpdate):
         now = datetime.now(timezone.utc)
         shift_manager.shift_start, shift_manager.shift_end = compute_shift_window(now)
 
-        return {"status": "success", "config": current, "note": "Updated shift configuration live"}
+        return {"status": "success", "config": updated, "note": "Updated shift configuration live"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -629,11 +622,10 @@ async def update_system_config(req: SystemConfigUpdate):
 @app.get("/api/lines/config")
 async def get_lines_config():
     """Get current line_config.json values."""
-    import os
-    cfg_path = os.path.join(os.path.dirname(__file__), "line_config.json")
+    cfg_path = get_config_file_path("line_config.json")
     try:
         if os.path.exists(cfg_path):
-            with open(cfg_path, "r") as f:
+            with open(cfg_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         return []
     except Exception as e:
@@ -647,16 +639,52 @@ class LinesConfigSave(BaseModel):
 @app.post("/api/lines/config")
 async def save_lines_config(req: LinesConfigSave):
     """Save new production lines config and reload the poller."""
-    import os
-    cfg_path = os.path.join(os.path.dirname(__file__), "line_config.json")
+    cfg_path = get_config_file_path("line_config.json")
     try:
-        with open(cfg_path, "w") as f:
+        with open(cfg_path, "w", encoding="utf-8") as f:
             json.dump(req.config, f, indent=2)
         poller.load_registers_config()
         poller.machine_states = {}
         return {"status": "success", "lines_count": len(req.config)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ══════════════════════════════════════════════════════════════
+# DESKTOP BACKEND OVERVIEW API — For Desktop App Monitor UI
+# ══════════════════════════════════════════════════════════════
+@app.get("/api/backend/overview")
+async def get_backend_overview(session: AsyncSession = Depends(get_session)):
+    """Summary of backend state: PLC connection, DB info, shift status, and summary count."""
+    import config
+    shift_info = shift_manager.get_status()
+    
+    # Query total shift summaries recorded in DB
+    try:
+        count_res = await session.execute(select(func.count(ShiftSummary.id)))
+        total_summaries = count_res.scalar() or 0
+    except Exception:
+        total_summaries = 0
+
+    return {
+        "status": "online",
+        "plc": {
+            "connected": poller.connected,
+            "simulation_mode": poller.simulation_mode,
+            "ip": poller.plc_ip,
+            "port": poller.plc_port,
+            "poll_interval": config.PLC_POLL_INTERVAL,
+        },
+        "database": {
+            "type": config.DB_TYPE,
+            "url": config.DATABASE_URL,
+            "total_shift_summaries_pushed": total_summaries,
+        },
+        "shift": shift_info,
+        "config_path": SYSTEM_CONFIG_PATH,
+        "system_config": load_system_config(),
+    }
+
 
 
 # ══════════════════════════════════════════════════════════════

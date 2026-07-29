@@ -24,7 +24,19 @@ def main():
         sys.exit(res1.returncode)
 
     print("\n==================================================")
-    print(" STEP 2: Building Electron NSIS Windows Installer")
+    print(" STEP 2: Verifying Prerequisites & Setup Script")
+    print("==================================================")
+    setup_ps1 = os.path.join(BASE_DIR, "setup_environment.ps1")
+    req_file = os.path.join(BASE_DIR, "requirements.txt")
+
+    if os.path.exists(setup_ps1) and os.path.exists(req_file):
+        print(f"Verified setup script: {setup_ps1}")
+        print(f"Verified requirements file: {req_file}")
+    else:
+        print("Warning: Prerequisite setup files missing in project root!")
+
+    print("\n==================================================")
+    print(" STEP 3: Building Electron NSIS Windows Installer")
     print("==================================================")
 
     # Check npx electron-builder

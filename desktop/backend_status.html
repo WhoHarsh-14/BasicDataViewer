@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PLC Tag Monitor — Desktop Backend Service</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: #131926;
+      --card-border: #1e293b;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.1);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --accent: #8b5cf6;
+      --radius: 12px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+
+    header { display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); padding: 18px 24px; border-radius: var(--radius); border: 1px solid var(--card-border); }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-icon { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #0284c7, #8b5cf6); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; }
+    .brand-info h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+    .brand-info p { font-size: 12px; color: var(--text-muted); }
+
+    .status-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 10px var(--success); animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } 100% { opacity: 1; transform: scale(1); } }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; }
+    .card-header h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+
+    .stat-box { display: flex; flex-direction: column; gap: 4px; }
+    .stat-value { font-size: 24px; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: 12px; color: var(--text-muted); }
+
+    .info-list { display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.05); }
+    .info-row:last-child { border-bottom: none; }
+    .info-key { color: var(--text-muted); }
+    .info-val { font-weight: 600; font-family: 'JetBrains Mono', monospace; color: var(--text); }
+
+    .btn { background: var(--primary); color: #000; font-weight: 600; border: none; border-radius: 8px; padding: 10px 16px; font-size: 13px; cursor: pointer; transition: all 0.2s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn:hover { background: var(--primary-hover); color: #fff; transform: translateY(-1px); }
+    .btn-secondary { background: #1e293b; color: var(--text); border: 1px solid var(--card-border); }
+    .btn-secondary:hover { background: #334155; }
+    .btn-warning { background: var(--warning); color: #000; }
+    .btn-warning:hover { background: #d97706; color: #fff; }
+
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .form-control { background: #0f172a; border: 1px solid var(--card-border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; font-family: 'JetBrains Mono', monospace; width: 100%; }
+    .form-control:focus { outline: none; border-color: var(--primary); }
+
+    .log-container { background: #070a12; border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; flex: 1; min-height: 200px; max-height: 300px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .log-line { color: var(--text-muted); line-height: 1.5; }
+    .log-info { color: var(--primary); }
+    .log-success { color: var(--success); }
+    .log-warn { color: var(--warning); }
+    .log-err { color: var(--danger); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">PLC</div>
+      <div class="brand-info">
+        <h1>PLC Data Collector Backend</h1>
+        <p>Automated Shift-wise DB Publisher & Poller</p>
+      </div>
+    </div>
+    <div class="status-badge" id="serviceBadge">
+      <div class="pulse-dot"></div>
+      <span id="serviceStatusText">Backend Active</span>
+    </div>
+  </header>
+
+  <div class="grid">
+    <!-- PLC Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2>⚡ PLC Poller Status</h2>
+        <span id="plcConnectBadge" class="info-val" style="color: var(--success)">ACTIVE</span>
+      </div>
+      <div class="info-list">
+        <div class="info-row">
+          <span class="info-key">Target IP:Port</span>
+          <span class="info-val" id="plcTarget">192.168.1.10:5000</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Simulation Mode</span>
+          <span class="info-val" id="plcSimMode">ENABLED</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Poll Interval</span>
+          <span class="info-val" id="plcInterval">0.5 seconds</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Live Poll Count</span>
+          <span class="info-val" id="pollCounter">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Database Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2>🗄️ Database Sync</h2>
+        <span class="info-val" style="color: var(--primary)">CONNECTED</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="dbRecordsCount">0</div>
+        <div class="stat-label">Shift Summaries Pushed to DB</div>
+      </div>
+      <div class="info-list">
+        <div class="info-row">
+          <span class="info-key">DB Engine</span>
+          <span class="info-val" id="dbType">PostgreSQL</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">DB Host</span>
+          <span class="info-val" id="dbHost">AWS Neon / Local</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shift Manager Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2>⏱️ Active Shift Window</h2>
+        <span class="info-val" id="shiftDuration">8h Window</span>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="shiftCountdown">--:--:--</div>
+        <div class="stat-label">Time Remaining in Current Shift</div>
+      </div>
+      <div class="info-list">
+        <div class="info-row">
+          <span class="info-key">Shift Start</span>
+          <span class="info-val" id="shiftStart">--:--</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Shift End</span>
+          <span class="info-val" id="shiftEnd">--:--</span>
+        </div>
+      </div>
+      <button class="btn btn-warning" id="forceEndBtn" onclick="forceEndShift()">
+        ⚡ Force End Shift & Push Summary to DB
+      </button>
+    </div>
+  </div>
+
+  <!-- Settings Configuration Card -->
+  <div class="card">
+    <div class="card-header">
+      <h2>⚙️ System Configuration</h2>
+    </div>
+    <form id="configForm" onsubmit="saveConfig(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+      <div class="form-group">
+        <label>PLC IP Address</label>
+        <input type="text" id="cfgPlcIp" class="form-control" value="192.168.1.10">
+      </div>
+      <div class="form-group">
+        <label>PLC Port</label>
+        <input type="number" id="cfgPlcPort" class="form-control" value="5000">
+      </div>
+      <div class="form-group">
+        <label>Simulation Mode</label>
+        <select id="cfgSim" class="form-control">
+          <option value="true">True (Simulation Sandbox)</option>
+          <option value="false">False (Physical PLC)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Shift Duration (Hours)</label>
+        <input type="number" id="cfgShiftDur" class="form-control" value="8">
+      </div>
+      <div class="form-group" style="grid-column: 1 / -1; display: flex; justify-content: flex-end;">
+        <button type="submit" class="btn">Save & Apply Configuration</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Console Log Terminal -->
+  <div class="card">
+    <div class="card-header">
+      <h2>📜 Live Activity Stream</h2>
+      <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="clearLogs()">Clear Console</button>
+    </div>
+    <div class="log-container" id="logConsole">
+      <div class="log-line log-info">[System] Desktop Backend Service initialized.</div>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://localhost:8000';
+    let pollTicks = 0;
+
+    function addLog(msg, type = 'info') {
+      const consoleEl = document.getElementById('logConsole');
+      const time = new Date().toLocaleTimeString();
+      const div = document.createElement('div');
+      div.className = `log-line log-${type}`;
+      div.textContent = `[${time}] ${msg}`;
+      consoleEl.appendChild(div);
+      consoleEl.scrollTop = consoleEl.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('logConsole').innerHTML = '';
+      addLog('Console cleared.');
+    }
+
+    async function fetchOverview() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/backend/overview`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        
+        // Update PLC card
+        document.getElementById('plcTarget').textContent = `${data.plc.ip}:${data.plc.port}`;
+        document.getElementById('plcSimMode').textContent = data.plc.simulation_mode ? 'ENABLED' : 'DISABLED';
+        document.getElementById('plcInterval').textContent = `${data.plc.poll_interval} seconds`;
+        document.getElementById('plcConnectBadge').textContent = data.plc.connected ? 'ACTIVE' : 'DISCONNECTED';
+        document.getElementById('plcConnectBadge').style.color = data.plc.connected ? 'var(--success)' : 'var(--danger)';
+        
+        pollTicks++;
+        document.getElementById('pollCounter').textContent = pollTicks;
+
+        // Update DB card
+        document.getElementById('dbRecordsCount').textContent = data.database.total_shift_summaries_pushed;
+        document.getElementById('dbType').textContent = data.database.type.toUpperCase();
+        
+        // Update Shift card
+        if (data.shift && data.shift.initialized) {
+          document.getElementById('shiftStart').textContent = new Date(data.shift.shift_start).toLocaleTimeString();
+          document.getElementById('shiftEnd').textContent = new Date(data.shift.shift_end).toLocaleTimeString();
+          
+          const secLeft = data.shift.seconds_remaining;
+          const h = Math.floor(secLeft / 3600);
+          const m = Math.floor((secLeft % 3600) / 60);
+          const s = Math.floor(secLeft % 60);
+          document.getElementById('shiftCountdown').textContent = 
+            `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+      } catch (err) {
+        addLog(`Failed to connect to backend: ${err.message}`, 'err');
+      }
+    }
+
+    async function forceEndShift() {
+      if (!confirm("Are you sure you want to force-end the active shift and push summary metrics to the Database now?")) return;
+      try {
+        addLog('Initiating force-end shift commit...', 'warn');
+        const res = await fetch(`${BACKEND_URL}/api/shift/force-end`, { method: 'POST' });
+        const data = await res.json();
+        addLog(`✓ Shift summary committed! Rows pushed: ${data.rows_committed}`, 'success');
+        fetchOverview();
+      } catch (err) {
+        addLog(`Force end shift failed: ${err.message}`, 'err');
+      }
+    }
+
+    async function saveConfig(e) {
+      e.preventDefault();
+      const ip = document.getElementById('cfgPlcIp').value;
+      const port = parseInt(document.getElementById('cfgPlcPort').value);
+      const sim = document.getElementById('cfgSim').value === 'true';
+      const shiftDur = parseInt(document.getElementById('cfgShiftDur').value);
+
+      try {
+        addLog('Saving updated configuration...', 'info');
+        await fetch(`${BACKEND_URL}/api/plc/connect`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ ip, port, simulation: sim })
+        });
+
+        await fetch(`${BACKEND_URL}/api/system/config`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ shift_duration_hours: shiftDur })
+        });
+
+        addLog('✓ Configuration updated and applied live!', 'success');
+        fetchOverview();
+      } catch (err) {
+        addLog(`Save config failed: ${err.message}`, 'err');
+      }
+    }
+
+    // Connect WebSocket for live logs
+    function initWebSocket() {
+      try {
+        const ws = new WebSocket(`ws://localhost:8000/ws/live`);
+        ws.onopen = () => addLog('Connected to live PLC data stream.', 'success');
+        ws.onmessage = (event) => {
+          // Poll tick received
+        };
+        ws.onclose = () => {
+          setTimeout(initWebSocket, 3000);
+        };
+      } catch(e) {}
+    }
+
+    // Interval loop
+    fetchOverview();
+    setInterval(fetchOverview, 1000);
+    initWebSocket();
+  </script>
+</body>
+</html>
