@@ -210,13 +210,13 @@ function createSplashWindow() {
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
+    width: 1440,
+    height: 880,
+    minWidth: 1000,
+    minHeight: 620,
     show: false,
-    title: 'PLC Tag Monitor — Desktop Backend Service',
-    backgroundColor: '#0b0f19',
+    title: 'PLC Tag Monitor',
+    backgroundColor: '#080c14',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -224,9 +224,9 @@ function createMainWindow() {
     },
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'backend_status.html'));
+  mainWindow.loadURL(`${BACKEND_URL}?mode=desktop`);
 
-  // Remove default menu bar
+  // Remove default menu bar (keep keyboard shortcuts via preload)
   mainWindow.setMenuBarVisibility(false);
 
   mainWindow.once('ready-to-show', () => {
@@ -246,8 +246,8 @@ function createMainWindow() {
       if (tray) {
         tray.displayBalloon({
           iconType: 'info',
-          title: 'PLC Tag Monitor Service',
-          content: 'Backend service is running in background. Right-click the tray icon to exit.',
+          title: 'PLC Tag Monitor',
+          content: 'Still collecting data in the background. Right-click the tray icon to quit.',
         });
       }
     }
@@ -276,14 +276,18 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show Control Panel',
+      label: 'Show Dashboard',
       click: () => {
         if (mainWindow) { mainWindow.show(); mainWindow.focus(); }
       },
     },
     { type: 'separator' },
     {
-      label: 'Open App Data (%APPDATA%)',
+      label: 'Open Web Dashboard',
+      click: () => shell.openExternal(BACKEND_URL),
+    },
+    {
+      label: 'Open Config Directory (%APPDATA%)',
       click: () => {
         const appData = process.env.APPDATA || (process.platform === 'darwin' ? path.join(process.env.HOME, 'Library', 'Preferences') : path.join(process.env.HOME, '.config'));
         const configPath = path.join(appData, 'PLC Tag Monitor');
@@ -295,7 +299,7 @@ function createTray() {
     },
     { type: 'separator' },
     {
-      label: 'Quit PLC Monitor Backend',
+      label: 'Quit PLC Monitor',
       click: () => {
         app.isQuitting = true;
         app.quit();
@@ -303,7 +307,7 @@ function createTray() {
     },
   ]);
 
-  tray.setToolTip('PLC Tag Monitor Backend — Service Active');
+  tray.setToolTip('PLC Tag Monitor — Collecting Data');
   tray.setContextMenu(contextMenu);
 
   tray.on('double-click', () => {
